@@ -1,35 +1,32 @@
 import React from "react";
-import { View, StyleSheet } from "react-native";
-import { Vector2 } from "../types/motion";
+import { StyleSheet } from "react-native";
+import Animated, { useAnimatedStyle, SharedValue } from "react-native-reanimated";
 
 const SIZE = 20;
 
 type Props = {
-  position: Vector2;
+  x: SharedValue<number>;
+  y: SharedValue<number>;
 };
 
-export function WandCursor({ position }: Props) {
+export function WandCursor({ x, y }: Props) {
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: x.value - SIZE / 2 },
+      { translateY: y.value - SIZE / 2 },
+    ],
+  }));
+
   return (
-    <View
-      pointerEvents="none"
-      style={[
-        styles.cursor,
-        {
-          left: 0,
-          top: 0,
-          transform: [
-            { translateX: position.x - SIZE / 2 },
-            { translateY: position.y - SIZE / 2 },
-          ],
-        },
-      ]}
-    />
+    <Animated.View pointerEvents="none" style={[styles.cursor, animatedStyle]} />
   );
 }
 
 const styles = StyleSheet.create({
   cursor: {
     position: "absolute",
+    left: 0,
+    top: 0,
     width: SIZE,
     height: SIZE,
     borderRadius: SIZE / 2,

@@ -1,5 +1,6 @@
 import { ReactNode } from "react";
-import { SafeAreaView, StyleSheet, ViewStyle } from "react-native";
+import { StyleSheet, View, ViewStyle } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { StatusBar } from "expo-status-bar";
 
 import { theme } from "@/styles/theme";
@@ -19,7 +20,7 @@ export function Screen({
   statusBarStyle = "light",
   padding = true,
 }: ScreenProps) {
-  const Container = safe ? SafeAreaView : (SafeAreaView as any);
+  const Container = safe ? SafeAreaView : View;
 
   return (
     <Container style={[styles.base, padding && styles.padding, style]}>

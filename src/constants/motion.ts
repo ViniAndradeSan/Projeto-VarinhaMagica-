@@ -1,3 +1,3 @@
-export const SENSITIVITY = 0.015;
-export const FRICTION = 0.92;
-export const MAX_SPEED = 20;
+export const SENSITIVITY = 3;   
+export const FRICTION = 0.95;    
+export const MAX_SPEED = 35;      
