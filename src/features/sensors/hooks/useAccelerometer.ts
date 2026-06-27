@@ -21,6 +21,7 @@ export function useAccelerometer() {
       subscription.remove();
     };
   }, []);
-
   return values;
+
+  
 }
