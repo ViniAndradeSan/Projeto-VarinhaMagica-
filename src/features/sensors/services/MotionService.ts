@@ -1,5 +1,6 @@
 import { AccelerometerReading, MotionState, Vector2 } from "../types/motion";
-import { FRICTION, MAX_SPEED, SENSITIVITY } from "../constants/motion";
+import { FRICTION, MAX_SPEED, SENSITIVITY } from "../../../constants/motion";
+import { WORLD_MARGIN } from "../../../constants/world";
 
 export function createInitialMotionState(
   width: number,
@@ -25,22 +26,40 @@ function clampVelocity(velocity: Vector2): Vector2 {
   };
 }
 
+function clampPosition(
+  position: Vector2,
+  width: number,
+  height: number
+): Vector2 {
+  return {
+    x: Math.min(Math.max(position.x, WORLD_MARGIN), width - WORLD_MARGIN),
+    y: Math.min(Math.max(position.y, WORLD_MARGIN), height - WORLD_MARGIN),
+  };
+}
+
 export function simulateMotion(
   currentState: MotionState,
-  sensor: AccelerometerReading
+  sensor: AccelerometerReading,
+  width: number,
+  height: number
 ): MotionState {
   const nextVelocity: Vector2 = clampVelocity({
     x: (currentState.velocity.x + sensor.x * SENSITIVITY) * FRICTION,
     y: (currentState.velocity.y + sensor.y * SENSITIVITY) * FRICTION,
   });
 
-  const nextPosition: Vector2 = {
-    x: currentState.position.x + nextVelocity.x,
-    y: currentState.position.y + nextVelocity.y,
-  };
+  const nextPosition: Vector2 = clampPosition(
+    {
+      x: currentState.position.x + nextVelocity.x,
+      y: currentState.position.y + nextVelocity.y,
+    },
+    width,
+    height
+  );
 
   return {
     position: nextPosition,
     velocity: nextVelocity,
   };
 }
+
