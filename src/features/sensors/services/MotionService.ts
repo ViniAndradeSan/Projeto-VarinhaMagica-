@@ -11,17 +11,16 @@ export function createInitialMotionState(
       x: width / 2,
       y: height / 2,
     },
-
     velocity: {
       x: 0,
       y: 0,
     },
-
     history: [],
   };
 }
 
 function clampVelocity(velocity: Vector2): Vector2 {
+  'worklet';
   const speed = Math.sqrt(
     velocity.x * velocity.x +
     velocity.y * velocity.y
@@ -44,6 +43,7 @@ function clampPosition(
   width: number,
   height: number
 ): Vector2 {
+  'worklet';
   return {
     x: Math.min(
       Math.max(position.x, WORLD_MARGIN),
@@ -62,6 +62,8 @@ export function simulateMotion(
   width: number,
   height: number
 ): MotionState {
+  'worklet';
+  
   const nextVelocity = clampVelocity({
     x:
       (currentState.velocity.x +
@@ -84,8 +86,8 @@ export function simulateMotion(
   );
 
   const nextHistory = [
-  ...currentState.history,
-  nextPosition,
+    ...currentState.history,
+    nextPosition,
   ];
   const limitedHistory = nextHistory.slice(-MAX_HISTORY);
 

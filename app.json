@@ -3,10 +3,10 @@
     "name": "magic-wand",
     "slug": "magic-wand",
     "version": "1.0.0",
+    "scheme": "magicwand",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",

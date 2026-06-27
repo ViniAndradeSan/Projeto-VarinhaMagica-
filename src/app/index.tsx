@@ -1,6 +1,6 @@
 import { Text, StyleSheet, View } from "react-native";
 
-import { Screen } from "@/components/screen/screen";
+import { Screen } from "@/components/Screen/Screen";
 import { WandCursor } from "@/features/sensors/components/WandCursor";
 import { theme } from "@/styles/theme";
 import { useMotion } from "@/features/sensors/hooks/useMotion";
