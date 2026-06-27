@@ -2,7 +2,7 @@ import { Text, StyleSheet, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
 import { WandCursor } from "@/features/sensors/components/WandCursor";
-import { useMotion } from "@/features/sensors/hooks/useMotion";
+import { useMotion } from "@/features/sensors/hooks/UseMotion";
 import { theme } from "@/styles/theme";
 
 export default function Home() {

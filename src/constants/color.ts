@@ -1,5 +1,3 @@
-import { red } from "react-native-reanimated/lib/typescript/Colors";
-
 export const color = {
   background: "#0B1020",
   surface: "#151B2D",
