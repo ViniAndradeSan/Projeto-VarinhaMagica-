@@ -1,5 +1,5 @@
 import { AccelerometerReading, MotionState, Vector2 } from "../types/motion";
-import { FRICTION, MAX_SPEED, SENSITIVITY } from "../../../constants/motion";
+import { FRICTION, MAX_HISTORY, MAX_SPEED, SENSITIVITY } from "../../../constants/motion";
 import { WORLD_MARGIN } from "../../../constants/world";
 
 export function createInitialMotionState(
@@ -11,10 +11,13 @@ export function createInitialMotionState(
       x: width / 2,
       y: height / 2,
     },
+
     velocity: {
       x: 0,
       y: 0,
     },
+
+    history: [],
   };
 }
 
@@ -80,8 +83,15 @@ export function simulateMotion(
     height
   );
 
+  const nextHistory = [
+  ...currentState.history,
+  nextPosition,
+  ];
+  const limitedHistory = nextHistory.slice(-MAX_HISTORY);
+
   return {
     position: nextPosition,
     velocity: nextVelocity,
+    history: limitedHistory,
   };
 }

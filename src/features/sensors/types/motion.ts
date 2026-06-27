@@ -9,7 +9,10 @@ export interface AccelerometerReading {
   z: number;
 }
 
+export type MotionHistory = Vector2[];
+
 export interface MotionState {
   position: Vector2;
   velocity: Vector2;
+  history: MotionHistory;
 }
