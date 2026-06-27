@@ -8,10 +8,10 @@ export function WandDebug() {
 
   return (
     <View style={styles.card}>
-      <Text style={styles.label}>Debug do acelerômetro</Text>
-      <Text style={styles.value}>x: {x.toFixed(3)}</Text>
-      <Text style={styles.value}>y: {y.toFixed(3)}</Text>
-      <Text style={styles.value}>z: {z.toFixed(3)}</Text>
+      <Text style={styles.label}>Teste do acelerômetro</Text>
+      <Text style={styles.value}>x: {x.toFixed(2)}</Text>
+      <Text style={styles.value}>y: {y.toFixed(2)}</Text>
+      <Text style={styles.value}>z: {z.toFixed(2)}</Text>
     </View>
   );
 }

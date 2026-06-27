@@ -1,25 +1,28 @@
 import { Text, StyleSheet, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
-import { WandDebug } from "@/features/sensors/components/WandDebug";
+import { WandCursor } from "@/features/sensors/components/WandCursor";
+import { useMotion } from "@/features/sensors/hooks/useMotion";
 import { theme } from "@/styles/theme";
 
 export default function Home() {
+  const motion = useMotion();
+
   return (
     <Screen>
-      <View style={styles.container}>
+      <View style={styles.content}>
         <Text style={styles.title}>Varinha Magica</Text>
         <Text style={styles.subtitle}>
           Mova o celular, e conjure seu feitiço
         </Text>
-        <WandDebug />
       </View>
+      <WandCursor position={motion.position} />
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  content: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
