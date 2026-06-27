@@ -1,6 +1,7 @@
 import { Text, StyleSheet, View } from "react-native";
 
 import { Screen } from "@/components/Screen";
+import { WandDebug } from "@/features/sensors/components/WandDebug";
 import { theme } from "@/styles/theme";
 
 export default function Home() {
@@ -11,6 +12,7 @@ export default function Home() {
         <Text style={styles.subtitle}>
           Mova o celular, e conjure seu feitiço
         </Text>
+        <WandDebug />
       </View>
     </Screen>
   );
