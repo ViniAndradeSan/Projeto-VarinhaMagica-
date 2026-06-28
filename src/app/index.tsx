@@ -1,40 +1,64 @@
-import { Text, StyleSheet, View } from "react-native";
+import { StatusBar } from "expo-status-bar";
+import { StyleSheet, Text, View } from "react-native";
+import { WandCursor } from "@/features/wand/components/WandCursor";
+import { WandTrail } from "@/features/wand/components/WandTrail";
+import { useWand } from "@/features/wand/hooks/useWand";
 
-import { Screen } from "@/components/Screen/Screen";
-import { WandCursor } from "@/features/sensors/components/WandCursor";
-import { theme } from "@/styles/theme";
-import { useMotion } from "@/features/sensors/hooks/useMotion";
-
-export default function Home() {
-  const { x, y } = useMotion();
+export default function HomeScreen() {
+  const state = useWand();
 
   return (
-    <Screen>
-      <View style={styles.content}>
-        <Text style={styles.title}>Varinha Magica</Text>
-        <Text style={styles.subtitle}>Mova o celular, e conjure seu feitiço</Text>
+    <View style={styles.container}>
+      <View style={styles.background} />
+      <WandTrail trail={state.trail} />
+      <WandCursor cursor={state.cursor} spell={state.spell} />
+      <View style={styles.hud} pointerEvents="none">
+        <Text style={styles.title}>Varinha Mágica</Text>
+        <Text style={styles.subtitle}>Balance o pulso para desenhar feitiços.</Text>
+        {state.spell ? <Text style={styles.spellText}>{state.spell.name}</Text> : null}
       </View>
-      <WandCursor x={x} y={y} />
-    </Screen>
+      <StatusBar style="light" />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  content: {
+  container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+    backgroundColor: "#14082A",
+    overflow: "hidden",
   },
-
+  background: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "#14082A",
+  },
+  hud: {
+    position: "absolute",
+    top: 48,
+    left: 24,
+    right: 24,
+  },
   title: {
-    color: theme.colors.text,
-    fontSize: theme.typography.sizes.xxl,
-    fontWeight: theme.typography.weights.bold,
+    color: "#fbf7ff",
+    fontSize: 32,
+    fontWeight: "900",
+    letterSpacing: 0.5,
+    marginBottom: 6,
   },
-
   subtitle: {
-    marginTop: theme.spacing.sm,
-    color: theme.colors.textMuted,
-    fontSize: theme.typography.sizes.md,
+    color: "rgba(255,255,255,0.72)",
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  spellText: {
+    marginTop: 18,
+    alignSelf: "flex-start",
+    color: "#fbe8a6",
+    fontSize: 14,
+    fontWeight: "700",
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
   },
 });
