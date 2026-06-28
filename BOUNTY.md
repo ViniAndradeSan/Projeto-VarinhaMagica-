@@ -1,4 +1,4 @@
-# Bounties
+# Relatório de Anomalias — Bounties
 
 ## [Nível 3] expo-haptics não dispara em simulador
 

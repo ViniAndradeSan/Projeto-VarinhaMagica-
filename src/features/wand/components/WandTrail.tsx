@@ -61,7 +61,7 @@ export function WandTrail({
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
-      <Svg width={width} height={height}>
+      <Svg width="100%" height="100%" viewBox={`0 0 ${width} ${height}`}>
         <Defs>
           <LinearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="0%">
             <Stop offset="0%" stopColor={svgColor} stopOpacity={frozen ? "0.9" : "0.1"} />

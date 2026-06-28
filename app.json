@@ -4,7 +4,7 @@
     "slug": "magic-wand",
     "version": "1.0.0",
     "scheme": "magicwand",
-    "orientation": "portrait",
+    "orientation": "default",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "splash": {

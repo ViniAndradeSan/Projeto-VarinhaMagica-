@@ -10,7 +10,7 @@ export const SPELLS: SpellDefinition[] = [
     shape: "circle",
     color: "#fff9c4",
     glowColor: "#ffee58",
-    description: "Ilumina as trevas",
+    description: "Lanterna é para aqueles que não têm varinha, mas a varinha é para aqueles que têm feitiço.",
     speechPitch: 1.4,
     speechRate: 0.85,
   },
