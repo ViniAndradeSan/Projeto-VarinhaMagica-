@@ -47,7 +47,7 @@ export default function HomeScreen() {
       Animated.timing(shakeAnim, { toValue: 0,   duration: 30, useNativeDriver: true }),
     ]).start();
     Animated.sequence([
-      Animated.delay(700),
+      Animated.delay(1200),
       Animated.timing(errorOpacity, { toValue: 0, duration: 600, useNativeDriver: true }),
     ]).start();
   }, [isError, state.timestamp]);
@@ -138,12 +138,13 @@ export default function HomeScreen() {
           style={[styles.errorBanner, { opacity: errorOpacity }]}
           pointerEvents="none"
         >
-          <Text style={styles.errorIcon}>✗</Text>
+          <Text style={styles.errorIcon}>✗✗✗✗✗✗✗✗✗✗</Text>
           <Text style={styles.errorTitle}>Magia Falhou</Text>
           <Text style={styles.errorSub}>
             Isso parece com algo, mas definitivamente não é um feitiço válido.{"\n"}
             Tente com mais precisão.
           </Text>
+          <Text style={styles.errorIcon}>✗✗✗✗✗✗✗✗✗</Text>
         </Animated.View>
       )}
 
