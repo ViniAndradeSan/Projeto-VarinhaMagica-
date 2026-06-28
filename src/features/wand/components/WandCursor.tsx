@@ -1,13 +1,12 @@
 import { useEffect, useRef } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 import type { Vector2 } from "../types/wandState";
+import { CURSOR_SIZE } from "../constants/world";
 
 type WandCursorProps = {
   cursor: Vector2;
   visible: boolean;
 };
-
-const CURSOR_SIZE = 22;
 
 export function WandCursor({ cursor, visible }: WandCursorProps) {
   const scaleAnim   = useRef(new Animated.Value(0)).current;

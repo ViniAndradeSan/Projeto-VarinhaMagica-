@@ -27,12 +27,20 @@ export interface SpellDefinition {
   color: string;
   glowColor: string;
   description: string;
-  emoji: string;
   /** Pitch de voz (0.5 = grave, 2.0 = agudo) */
   speechPitch: number;
   /** Taxa de fala (0.5 = lento, 2.0 = rápido) */
   speechRate: number;
+  
+  // 💡 Adicionada a "?" para torná-las opcionais no array estático
+  startedAt?: number;
+  duration?: number;
+  cooldown?: number;
+  /** Nome do efeito visual de feitiço (ou null para nenhum) */
+  effect?: string | null;
+  alpha?: number;
 }
+
 
 export interface RecognitionDebug {
   winding: number;
@@ -90,6 +98,7 @@ export interface WandState {
   phase: SpellPhase;
   cursor: Vector2;
   trail: TrailPoint[];
+  spell: SpellDefinition | null;
   frozenTrail: TrailPoint[];
   recognizedSpell: SpellDefinition | null;
   castEffect: string | null;

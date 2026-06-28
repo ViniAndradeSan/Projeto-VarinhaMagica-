@@ -7,8 +7,7 @@ import { useMemo } from "react";
 import { StyleSheet, View } from "react-native";
 import Svg, { Path, Defs, LinearGradient, Stop } from "react-native-svg";
 import type { TrailPoint } from "../types/wandState";
-
-const MAX_RENDER_POINTS = 80;
+import { MAX_RENDER_POINTS } from "../constants/world";
 
 type WandTrailProps = {
   trail: TrailPoint[];

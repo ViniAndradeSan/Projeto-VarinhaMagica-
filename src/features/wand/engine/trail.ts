@@ -9,14 +9,24 @@ function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
   return Math.hypot(dx, dy);
 }
 
-export function updateTrail(state: WandState): WandState {
+// 💡 Adicionado o argumento `isMoving` separado para respeitar sua interface WandState
+export function updateTrail(state: WandState, isMoving: boolean): WandState {
   const lastPoint = state.trail[state.trail.length - 1];
+  
   const shouldAppend =
-    state.isMoving &&
+    isMoving &&
     (!lastPoint || distance(lastPoint, state.cursor) > MIN_MOVE);
 
   const trail = shouldAppend
-    ? [...state.trail, { id: state.timestamp, x: state.cursor.x, y: state.cursor.y, timestamp: state.timestamp }]
+    ? [
+        ...state.trail, 
+        { 
+          id: state.timestamp, 
+          x: state.cursor.x, 
+          y: state.cursor.y, 
+          timestamp: state.timestamp 
+        } 
+      ]
     : state.trail;
 
   return {

@@ -55,7 +55,7 @@ export default function HomeScreen() {
   // ── Subtítulo dinâmico ──────────────────────────────────────────────────
   const subtitle =
     isDrawing ? "Desenhando o feitiço..." :
-    isCasting ? "✨ Magia conjurada!" :
+    isCasting ? "Magia conjurada!" :
     isError ? "Tente novamente." :
     isIdle ? "Desenhe um gesto com o dedo" : "";
 
@@ -141,7 +141,7 @@ export default function HomeScreen() {
           <Text style={styles.errorIcon}>✗</Text>
           <Text style={styles.errorTitle}>Magia Falhou</Text>
           <Text style={styles.errorSub}>
-            O traçado não corresponde a nenhum feitiço conhecido.{"\n"}
+            Isso parece com algo, mas definitivamente não é um feitiço válido.{"\n"}
             Tente com mais precisão.
           </Text>
         </Animated.View>

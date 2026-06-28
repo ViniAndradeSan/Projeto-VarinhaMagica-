@@ -70,7 +70,7 @@ export function SpellEffect({ spellName }: Props) {
           {
             borderColor: spell.color,
             transform: [{ scale: scale2 }],
-            opacity: Animated.multiply(opacity, new Animated.Value(0.55)),
+            opacity: opacity.interpolate({ inputRange: [0, 1], outputRange: [0, 0.55] }),
           },
         ]}
       />
@@ -79,7 +79,6 @@ export function SpellEffect({ spellName }: Props) {
       <Animated.View
         style={[styles.card, { transform: [{ scale: scale1 }], opacity }]}
       >
-        <Text style={styles.emoji}>{spell.emoji}</Text>
         <Text style={[styles.name, { color: spell.color, textShadowColor: spell.glowColor }]}>
           {spell.name}
         </Text>
@@ -161,8 +160,6 @@ const styles = StyleSheet.create({
     paddingVertical: 20,
     borderRadius: 20,
     backgroundColor: "rgba(0,0,0,0.65)",
-    // [M02] Platform: iOS usa sombra nativa, Android usa elevation (Material Design).
-    // São APIs distintas — shadow* não tem efeito no Android, elevation não existe no iOS.
     ...Platform.select({
       ios: {
         shadowColor: "#a78bfa",
@@ -174,10 +171,6 @@ const styles = StyleSheet.create({
         elevation: 12,
       },
     }),
-  },
-  emoji: {
-    fontSize: 44,
-    marginBottom: 8,
   },
   name: {
     fontSize: 34,
