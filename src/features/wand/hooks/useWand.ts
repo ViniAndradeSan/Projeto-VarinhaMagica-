@@ -19,19 +19,15 @@ import {
   speakSpell,
   stopSpeech,
 } from "../services/FeedbackService";
-
+import { CAST_DISPLAY_MS, ERROR_DISPLAY_MS } from "../constants/world";
 // ─── Temporizadores e durações ───────────────────────────────────────────────
 
-/** Duração do efeito de casting na tela (ms) */
-const CAST_DISPLAY_MS = 2200;
-
-/** Duração do estado de erro antes de resetar (ms) */
-const ERROR_DISPLAY_MS = 1500;
 
 const INITIAL_STATE: WandState = {
   phase: "idle",
   cursor: { x: 0, y: 0 },
   trail: [],
+  spell: null, 
   frozenTrail: [],
   recognizedSpell: null,
   castEffect: null,
@@ -70,6 +66,7 @@ export function useWand() {
       ...prev,
       phase: "error",
       trail: [],
+      spell: null, 
       frozenTrail,
       recognizedSpell: null,
       castEffect: null,
@@ -104,6 +101,7 @@ export function useWand() {
       ...prev,
       phase: "casting",
       trail: [],
+      spell: spell, 
       frozenTrail: trail,
       recognizedSpell: spell,
       castEffect: spell.name,
@@ -117,6 +115,7 @@ export function useWand() {
         ...s,
         phase: "idle",
         trail: [],
+        spell: null,
         frozenTrail: [],
         recognizedSpell: null,
         castEffect: null,
@@ -150,6 +149,7 @@ export function useWand() {
         phase: "drawing",
         cursor: { x: locationX, y: locationY },
         trail: [],
+        spell: null, 
         frozenTrail: [],
         recognizedSpell: null,
         castEffect: null,
@@ -199,6 +199,7 @@ export function useWand() {
         ...prev,
         phase: "idle",
         trail: [],
+        spell: null, 
         frozenTrail: [],
         recognizedSpell: null,
         castEffect: null,

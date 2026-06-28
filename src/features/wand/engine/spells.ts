@@ -33,22 +33,22 @@ export const SPELLS: SpellDefinition[] = [
     speechRate: 0.78,
   },
   {
-    name: "Wingardium Leviosa",
+    name: "Wiiingardium Leviosá",
     shape: "horizontal",
     color: "#42a5f5",
     glowColor: "#40c4ff",
-    description: "Levita objetos",
+    description: "Levita objetos, é leviosa, não leviosá",
     speechPitch: 1.25,
     speechRate: 0.72,
   },
   {
-    name: "Avada Kedavra",
+    name: "Aaa va da Ke davra",
     shape: "vertical",
     color: "#69f0ae",
     glowColor: "#00e676",
-    description: "A maldição que não deve ser nomeada",
-    speechPitch: 0.55,
-    speechRate: 0.6,
+    description: "A Maldição da Morte",
+    speechPitch: 0.65,
+    speechRate: 0.5,
   },
 ];
 
