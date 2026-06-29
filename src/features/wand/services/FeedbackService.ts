@@ -1,5 +1,5 @@
 /**
- * FeedbackService — Varinha Mágica v5
+ * FeedbackService — Varinha Mágica v5.1
  * =====================================
  * Centraliza todo feedback sensorial: haptics + text-to-speech.
  * Isolado dos componentes visuais para máxima reutilização e testabilidade.
@@ -8,6 +8,8 @@
 import * as Haptics from "expo-haptics";
 import * as Speech from "expo-speech";
 import type { SpellDefinition } from "../types/wandState";
+import { DEFAULT_LANGUAGE, delay } from "../constants/world";
+
 
 // ─── Haptics ──────────────────────────────────────────────────────────────────
 
@@ -24,12 +26,13 @@ export async function hapticSuccess(): Promise<void> {
 
 /**
  * Feedback tátil de ERRO CRÍTICO: impacto severo, comunicando falha da magia.
+ * Usa await sequencial para evitar atropelar o motor de vibração nativo.
  */
 export async function hapticCriticalError(): Promise<void> {
   try {
     await Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
-    // Duplo impacto para enfatizar o erro
-    await new Promise<void>((r) => setTimeout(r, 120));
+    // Pequena janela de tempo para o motor físico respirar entre os pulsos
+    await delay(120);
     await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
   } catch {
     // Silencia
@@ -49,7 +52,7 @@ export async function hapticChannelPulse(): Promise<void> {
 }
 
 /**
- * Feedback tátil ao iniciar o desenho.
+ * Feedback tátil ao iniciar o desenho (varinha ativada).
  */
 export async function hapticDrawStart(): Promise<void> {
   try {
@@ -63,26 +66,28 @@ export async function hapticDrawStart(): Promise<void> {
 
 /**
  * Anuncia o nome do feitiço em voz alta com parâmetros místicos.
- * Chamado imediatamente após a validação do motor.
+ * Protegido contra concorrência de chamadas consecutivas.
  */
 export async function speakSpell(spell: SpellDefinition): Promise<void> {
   try {
-    // Para qualquer fala anterior antes de iniciar a nova
+    // Força a parada da fala anterior
     await Speech.stop();
+    
+    // Pequena folga para a API nativa liberar a thread de áudio
+    await delay(50);
 
     await Speech.speak(spell.name, {
-      language: "pt-BR",
+      language: DEFAULT_LANGUAGE,
       pitch: spell.speechPitch,
       rate: spell.speechRate,
-      // Pronúncia em pt-BR com os nomes latinos soa mais místico
     });
   } catch {
-    // Speech pode falhar em alguns simuladores
+    // Speech pode falhar se o motor de voz do OS estiver ocupado ou em simuladores
   }
 }
 
 /**
- * Para qualquer fala em andamento.
+ * Para qualquer fala em andamento de forma segura.
  */
 export async function stopSpeech(): Promise<void> {
   try {

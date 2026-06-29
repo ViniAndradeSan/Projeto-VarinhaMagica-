@@ -1,7 +1,5 @@
 import type { WandState } from "../types/wandState";
-
-const MIN_MOVE = 0.007;
-const MAX_POINTS = 24;
+import { MAX_POINTS, MIN_MOVE } from "../constants/world";
 
 function distance(a: { x: number; y: number }, b: { x: number; y: number }) {
   const dx = a.x - b.x;

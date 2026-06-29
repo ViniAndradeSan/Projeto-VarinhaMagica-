@@ -3,7 +3,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   return (
-    <GestureHandlerRootView style={{ flex: 1 }}>
+    <GestureHandlerRootView>
       <SafeAreaProvider>{children}</SafeAreaProvider>
     </GestureHandlerRootView>
   );

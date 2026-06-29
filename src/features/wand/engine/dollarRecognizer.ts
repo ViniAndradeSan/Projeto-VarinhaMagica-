@@ -1,23 +1,8 @@
-﻿/**
- * Hybrid gesture recognizer — Varinha Mágica v5
- * =========================================================
- * Este motor prioriza templates e usa heurísticas como correção e penalização.
- * Ele mantém compatibilidade com gestos já suportados, mas reduz a dependência
- * de thresholds rígidos e permite reconhecer traços levemente imperfeitos.
- */
-
-import type { TrailPoint, SpellShape, ShapeScore, RecognitionResult } from "../types/wandState";
+﻿import type { TrailPoint, SpellShape, ShapeScore, RecognitionResult } from "../types/wandState";
 import { SPELL_BY_SHAPE } from "./spells";
-
-const N = 64;
-const MIN_RECOGNITION_SCORE = 0.55;
-const NOISE_THRESHOLD = 0.15;
-const MIN_POINTS = 6;
-const SQUARE_SIZE = 1;
-const HALF_DIAGONAL = Math.sqrt(2) * 0.5;
-const ANGLE_RANGE = Math.PI / 4;
-const ANGLE_PRECISION = Math.PI / 90;
-const PHI = 0.5 * (-1 + Math.sqrt(5));
+import { DEBUG, MIN_POINTS, N, SQUARE_SIZE, ANGLE_RANGE, ANGLE_PRECISION,
+         HALF_DIAGONAL, START_SAMPLES, PHI,
+         MIN_RECOGNITION_SCORE, NOISE_THRESHOLD } from "../constants/world";
 
 interface Pt { x: number; y: number; }
 interface Rectangle { x: number; y: number; width: number; height: number; }
@@ -28,6 +13,12 @@ function clamp01(value: number): number {
 
 function average(values: number[]): number {
   return values.reduce((sum, value) => sum + value, 0) / values.length;
+}
+
+
+function bandScore(value: number, center: number, halfWidth: number): number {
+  const d = Math.abs(value - center);
+  return Math.max(0, 1 - d / halfWidth);
 }
 
 function dist(a: Pt, b: Pt): number {
@@ -110,45 +101,86 @@ function goldenSectionSearch(pts: Pt[], template: Pt[], a: number, b: number, th
       f2 = pathDistance(rotateBy(pts, x2), template);
     }
   }
-
   return Math.min(f1, f2);
 }
 
-function dollarScore(inputNorm: Pt[], templatePts: Pt[]): number {
-  const distance = goldenSectionSearch(inputNorm, templatePts, -ANGLE_RANGE, ANGLE_RANGE, ANGLE_PRECISION);
+function startVariations(pts: Pt[], includeReverse: boolean): Pt[][] {
+  const variations: Pt[][] = [];
+  const forms = includeReverse ? [pts, [...pts].reverse()] : [pts];
+
+  for (const form of forms) {
+    const len = form.length;
+    for (let s = 0; s < START_SAMPLES; s++) {
+      const offset = Math.round((s / START_SAMPLES) * len) % len;
+      const rotated = form.slice(offset).concat(form.slice(0, offset));
+      variations.push(rotated);
+    }
+  }
+  return variations;
+}
+
+function dollarScore(inputNorm: Pt[], templatePts: Pt[], allowRotation: boolean): number {
+  const distance = allowRotation
+    ? goldenSectionSearch(inputNorm, templatePts, -ANGLE_RANGE, ANGLE_RANGE, ANGLE_PRECISION)
+    : pathDistance(inputNorm, templatePts);
   return clamp01(1 - distance / HALF_DIAGONAL);
 }
+
+function dollarBest(inputNorm: Pt[], templates: Pt[][], opts: { rotation: boolean; reverse: boolean }): number {
+  const variations = startVariations(inputNorm, opts.reverse);
+  let best = 0;
+  for (const tmpl of templates) {
+    for (const variation of variations) {
+      const s = dollarScore(variation, tmpl, opts.rotation);
+      if (s > best) best = s;
+    }
+  }
+  return best;
+}
+
+const MATCH_POLICY: Record<SpellShape, { rotation: boolean; reverse: boolean }> = {
+  circle:     { rotation: true,  reverse: true },
+  triangle:   { rotation: true,  reverse: true },
+  zigzag:     { rotation: false, reverse: true },
+  horizontal: { rotation: false, reverse: true },
+  vertical:   { rotation: false, reverse: true },
+};
 
 function resample(points: Pt[], n: number): Pt[] {
   if (points.length < 2) return points.map((p) => ({ ...p }));
 
-  const interval = pathLength(points) / (n - 1);
+  const work = points.map((p) => ({ ...p })); // cópia mutável (sofre splice)
+  const total = pathLength(work);
+  if (total === 0) return work.map((p) => ({ ...p }));
+
+  const interval = total / (n - 1);
+  const result: Pt[] = [{ x: work[0].x, y: work[0].y }];
   let D = 0;
-  const newPoints: Pt[] = [{ ...points[0] }];
-  let i = 1;
+  let prev = work[0];
 
-  while (i < points.length && newPoints.length < n) {
-    const prev = points[i - 1];
-    const current = points[i];
-    const d = dist(prev, current);
-
+  for (let i = 1; i < work.length; i++) {
+    const cur = work[i];
+    const d = dist(prev, cur);
     if (D + d >= interval) {
       const t = (interval - D) / d;
-      newPoints.push({ x: prev.x + t * (current.x - prev.x), y: prev.y + t * (current.y - prev.y) });
-      points = [{ x: newPoints[newPoints.length - 1].x, y: newPoints[newPoints.length - 1].y }, ...points.slice(i)];
+      const nx = prev.x + t * (cur.x - prev.x);
+      const ny = prev.y + t * (cur.y - prev.y);
+      const sample: Pt = { x: nx, y: ny };
+      result.push(sample);
+      work.splice(i, 0, sample); 
+      prev = sample;
       D = 0;
-      i = 1;
     } else {
       D += d;
-      i += 1;
+      prev = cur;
     }
   }
 
-  while (newPoints.length < n) {
-    newPoints.push({ ...points[points.length - 1] });
-  }
+  const last = work[work.length - 1];
+  while (result.length < n) result.push({ x: last.x, y: last.y });
+  result[n - 1] = { x: last.x, y: last.y };
 
-  return newPoints.slice(0, n);
+  return result.slice(0, n);
 }
 
 function normalizeInput(trail: TrailPoint[]): Pt[] | null {
@@ -175,7 +207,7 @@ function makeCircleTemplate(n: number): Pt[] {
 }
 
 function makeZigzagTemplate(n: number): Pt[] {
-  const segments: Pt[][] = [
+  const segments: [Pt, Pt][] = [
     [{ x: -1, y: -1 }, { x: 1, y: -1 }],
     [{ x: 1, y: -1 }, { x: -1, y: 1 }],
     [{ x: -1, y: 1 }, { x: 1, y: 1 }],
@@ -183,9 +215,12 @@ function makeZigzagTemplate(n: number): Pt[] {
   const pts: Pt[] = [];
   const perSegment = Math.floor(n / 3);
 
-  for (const [start, end] of segments) {
-    for (let i = 0; i < perSegment; i++) {
-      const t = i / (perSegment - 1);
+  for (let s = 0; s < segments.length; s++) {
+    const [start, end] = segments[s];
+    const isLast = s === segments.length - 1;
+    const count = isLast ? perSegment + 1 : perSegment;
+    for (let i = 0; i < count; i++) {
+      const t = i / perSegment;
       pts.push({ x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t });
     }
   }
@@ -194,27 +229,29 @@ function makeZigzagTemplate(n: number): Pt[] {
   return pts.slice(0, n);
 }
 
-function makeTriangleTemplate(n: number): Pt[] {
+function makeTriangleTemplates(n: number): Pt[][] {
   const vertices: Pt[] = [
     { x: 0, y: -1 },
     { x: 0.9, y: 0.6 },
     { x: -0.9, y: 0.6 },
-    { x: 0, y: -1 },
   ];
 
-  const pts: Pt[] = [];
-  const perSide = Math.floor(n / 3);
-  for (let side = 0; side < 3; side++) {
-    const start = vertices[side];
-    const end = vertices[side + 1];
-    for (let i = 0; i < perSide; i++) {
-      const t = i / perSide;
-      pts.push({ x: start.x + (end.x - start.x) * t, y: start.y + (end.y - start.y) * t });
+  function buildFrom(startIdx: number): Pt[] {
+    const pts: Pt[] = [];
+    const perSide = Math.floor(n / 3);
+    for (let side = 0; side < 3; side++) {
+      const from = vertices[(startIdx + side) % 3];
+      const to = vertices[(startIdx + side + 1) % 3];
+      for (let i = 0; i < perSide; i++) {
+        const t = i / perSide;
+        pts.push({ x: from.x + (to.x - from.x) * t, y: from.y + (to.y - from.y) * t });
+      }
     }
+    while (pts.length < n) pts.push({ ...pts[pts.length - 1] });
+    return normalizeTemplate(pts.slice(0, n));
   }
 
-  while (pts.length < n) pts.push({ ...pts[pts.length - 1] });
-  return pts.slice(0, n);
+  return [buildFrom(0), buildFrom(1), buildFrom(2)];
 }
 
 function makeHorizontalTemplate(n: number): Pt[] {
@@ -225,13 +262,15 @@ function makeVerticalTemplate(n: number): Pt[] {
   return Array.from({ length: n }, (_, i) => ({ x: 0, y: -1 + (2 * i) / (n - 1) }));
 }
 
-const NORMALIZED_TEMPLATES: Record<SpellShape, Pt[]> = {
-  circle: normalizeTemplate(makeCircleTemplate(N)),
-  zigzag: normalizeTemplate(makeZigzagTemplate(N)),
-  triangle: normalizeTemplate(makeTriangleTemplate(N)),
-  horizontal: normalizeTemplate(makeHorizontalTemplate(N)),
-  vertical: normalizeTemplate(makeVerticalTemplate(N)),
+const NORMALIZED_TEMPLATES: Record<SpellShape, Pt[][]> = {
+  circle:     [normalizeTemplate(makeCircleTemplate(N))],
+  zigzag:     [normalizeTemplate(makeZigzagTemplate(N))],
+  triangle:   makeTriangleTemplates(N),
+  horizontal: [normalizeTemplate(makeHorizontalTemplate(N))],
+  vertical:   [normalizeTemplate(makeVerticalTemplate(N))],
 };
+
+// ---------- Features geométricas ----------
 
 function computeWinding(pts: Pt[]): number {
   const center = centroid(pts);
@@ -246,31 +285,74 @@ function computeWinding(pts: Pt[]): number {
     total += delta;
     previous = current;
   }
-
   return total;
 }
 
-function countHorizontalReversals(pts: Pt[]): number {
-  let count = 0;
-  let lastSign = 0;
+// Consistência de raio (coeficiente de variação). Círculo ~CV baixo; polígono ~CV alto.
+function radiusConsistency(pts: Pt[]): number {
+  const c = centroid(pts);
+  const radii = pts.map((p) => Math.hypot(p.x - c.x, p.y - c.y));
+  const mean = radii.reduce((s, r) => s + r, 0) / radii.length;
+  if (mean === 0) return 0;
+  const variance = radii.reduce((s, r) => s + (r - mean) ** 2, 0) / radii.length;
+  const cv = Math.sqrt(variance) / mean;
+  return clamp01(1 - cv / 0.15);
+}
 
-  for (let i = 1; i < pts.length; i++) {
-    const dx = pts[i].x - pts[i - 1].x;
-    if (Math.abs(dx) > 0.04) {
-      const sign = Math.sign(dx);
-      if (sign !== 0 && sign !== lastSign) {
+// Orientação via PCA (eixo principal). Imune a ponto de início e direção.
+function dominantAngle(pts: Pt[]): number {
+  const c = centroid(pts);
+  let sxx = 0, syy = 0, sxy = 0;
+  for (const p of pts) {
+    const dx = p.x - c.x, dy = p.y - c.y;
+    sxx += dx * dx; syy += dy * dy; sxy += dx * dy;
+  }
+  return 0.5 * Math.atan2(2 * sxy, sxx - syy); // [-π/2, π/2]
+}
+
+function horizontalAlignment(pts: Pt[]): number {
+  const a = Math.abs(dominantAngle(pts)); // 0 = horizontal
+  return clamp01(1 - a / (Math.PI / 4));
+}
+
+function verticalAlignment(pts: Pt[]): number {
+  const a = Math.abs(dominantAngle(pts));
+  return clamp01(1 - Math.abs(a - Math.PI / 2) / (Math.PI / 4));
+}
+
+// CORREÇÃO A — reversões horizontais robustas por histerese.
+// Conta mudanças de direção em X usando extremos locais com banda morta,
+// imune a micro-tremores e ao threshold adaptativo "engolir" a diagonal do Z.
+// Z verdadeiro => 2. Multi-zigzag => muitas (rejeitado pela banda).
+function countHorizontalReversals(pts: Pt[]): number {
+  const xs = pts.map((p) => p.x);
+  const range = Math.max(...xs) - Math.min(...xs);
+  if (range === 0) return 0;
+  const hysteresis = range * 0.15;
+
+  let count = 0;
+  let direction = 0;
+  let lastExtreme = xs[0];
+
+  for (let i = 1; i < xs.length; i++) {
+    const delta = xs[i] - lastExtreme;
+    if (Math.abs(delta) > hysteresis) {
+      const newDir = Math.sign(delta);
+      if (direction !== 0 && newDir !== direction) {
         count += 1;
-        lastSign = sign;
       }
+      direction = newDir;
+      lastExtreme = xs[i];
+    } else if (direction !== 0) {
+      if (direction > 0 && xs[i] > lastExtreme) lastExtreme = xs[i];
+      if (direction < 0 && xs[i] < lastExtreme) lastExtreme = xs[i];
     }
   }
-
   return count;
 }
 
 function countSharpCorners(pts: Pt[], step = 5): number {
   let corners = 0;
-
   for (let i = step; i < pts.length - step; i++) {
     const ax = pts[i].x - pts[i - step].x;
     const ay = pts[i].y - pts[i - step].y;
@@ -278,13 +360,11 @@ function countSharpCorners(pts: Pt[], step = 5): number {
     const by = pts[i + step].y - pts[i].y;
     const magA = Math.hypot(ax, ay);
     const magB = Math.hypot(bx, by);
-
     if (magA > 0.08 && magB > 0.08) {
       const cos = (ax * bx + ay * by) / (magA * magB);
       if (cos < -0.4) corners += 1;
     }
   }
-
   return corners;
 }
 
@@ -300,7 +380,6 @@ function lineStraightness(pts: Pt[]): number {
   const dx = end.x - start.x;
   const dy = end.y - start.y;
   const baseLength = Math.hypot(dx, dy);
-
   if (baseLength === 0) return 0;
 
   let totalDistance = 0;
@@ -308,7 +387,6 @@ function lineStraightness(pts: Pt[]): number {
     const cross = Math.abs((point.x - start.x) * dy - (point.y - start.y) * dx);
     totalDistance += cross / baseLength;
   }
-
   const averageDistance = totalDistance / pts.length;
   return clamp01(1 - averageDistance * 1.75);
 }
@@ -322,89 +400,95 @@ function aspectRatios(pts: Pt[]) {
 function featureSet(pts: Pt[]) {
   const pathLen = pathLength(pts);
   const closure = closureRatio(pts);
-  const winding = clamp01(Math.abs(computeWinding(pts)) / (Math.PI * 2));
+  const rawWinding = Math.abs(computeWinding(pts));
   const reversals = countHorizontalReversals(pts);
   const corners = countSharpCorners(pts);
   const straightness = lineStraightness(pts);
   const { horizontalRatio, verticalRatio } = aspectRatios(pts);
-  const dy = pts[pts.length - 1].y - pts[0].y;
-  const downness = dy > 0 ? verticalRatio : verticalRatio * 0.25;
+  const radiusCV = radiusConsistency(pts);
+  const hAlign = horizontalAlignment(pts);
+  const vAlign = verticalAlignment(pts);
   const pathLengthScore = clamp01((pathLen - 0.8) / 2.2);
 
   return {
     pathLength: pathLen,
     pathLengthScore,
     closure,
-    winding,
+    rawWinding,
     reversals,
     corners,
     straightness,
     horizontalRatio,
     verticalRatio,
-    downness,
-    dx: pts[pts.length - 1].x - pts[0].x,
-    dy,
+    radiusConsistency: radiusCV,
+    hAlign,
+    vAlign,
   };
 }
 
-function shapeEvidence(shape: SpellShape, features: ReturnType<typeof featureSet>): number {
+type Features = ReturnType<typeof featureSet>;
+
+function shapeEvidence(shape: SpellShape, features: Features): number {
   const isClosed = clamp01(1 - features.closure / 0.3);
   const isStraight = features.straightness;
   const isCurvy = 1 - features.straightness;
+  const isOpen = clamp01(features.closure / 0.25); // aberto = score alto
 
   switch (shape) {
     case "circle":
       return average([
         isClosed,
-        clamp01(features.winding / 0.6),
+        bandScore(features.rawWinding, Math.PI * 2, Math.PI),
+        features.radiusConsistency,
         clamp01(1 - features.corners / 2),
-        clamp01(1 - features.reversals / 2),
         isCurvy,
       ]);
 
+    // Z: discriminantes FORTES = 2 reversões + aberto + horizontalmente largo.
+    // Cantos têm peso menor (Z manual tem cantos obtusos), com banda tolerante.
     case "zigzag":
       return average([
-        clamp01(features.reversals / 3),
-        clamp01(features.horizontalRatio / 0.75),
-        clamp01(1 - features.winding),
-        clamp01(1 - features.closure),
-        clamp01(features.straightness * 0.6 + 0.2),
+        bandScore(features.reversals, 2, 1.5),  // pico em 2; >=3.5 => 0
+        isOpen,                                   // Z não fecha
+        clamp01(features.horizontalRatio / 0.6),  // largo
+        bandScore(features.corners, 2, 3),        // tolerante (0..5)
+        clamp01(1 - features.rawWinding / Math.PI),
       ]);
 
     case "triangle":
       return average([
-        clamp01(features.corners / 1.5),
-        clamp01(features.winding / 0.65),
-        clamp01(1 - features.reversals / 3),
+        bandScore(features.corners, 3, 2),
+        bandScore(features.rawWinding, Math.PI * 2, Math.PI),
+        clamp01(1 - features.radiusConsistency), // anti-círculo
         isClosed,
-        clamp01(isCurvy * 0.8 + 0.1),
+        clamp01(1 - features.reversals / 4),
       ]);
 
     case "horizontal":
       return average([
-        features.horizontalRatio,
+        features.hAlign,
         isStraight,
-        clamp01(1 - features.winding / 0.4),
-        clamp01(1 - features.reversals / 2),
+        clamp01(1 - features.reversals / 2), // linha não tem reversões
+        clamp01(1 - features.rawWinding / (Math.PI * 0.4)),
         features.pathLengthScore,
       ]);
 
     case "vertical":
       return average([
-        features.verticalRatio,
+        features.vAlign,
         isStraight,
-        clamp01(1 - features.winding / 0.4),
         clamp01(1 - features.reversals / 2),
-        features.downness,
+        clamp01(1 - features.rawWinding / (Math.PI * 0.4)),
         features.pathLengthScore,
       ]);
   }
 }
 
-function scoreShape(shape: SpellShape, normPts: Pt[], features: ReturnType<typeof featureSet>): number {
-  const templateScore = dollarScore(normPts, NORMALIZED_TEMPLATES[shape]);
+// min(templateScore, evidence) — sem fator mágico.
+function scoreShape(shape: SpellShape, normPts: Pt[], features: Features): number {
+  const templateScore = dollarBest(normPts, NORMALIZED_TEMPLATES[shape], MATCH_POLICY[shape]);
   const evidence = shapeEvidence(shape, features);
-  return clamp01(templateScore * 0.7 + evidence * 0.3);
+  return clamp01(Math.min(templateScore, evidence));
 }
 
 export function scoreAllShapes(trail: TrailPoint[]): ShapeScore[] {
@@ -414,15 +498,17 @@ export function scoreAllShapes(trail: TrailPoint[]): ShapeScore[] {
   const features = featureSet(normPts);
   const shapes: SpellShape[] = ["circle", "zigzag", "triangle", "horizontal", "vertical"];
 
+  if (DEBUG) debugTrace(trail);
+
   return shapes.map((shape) => ({
     shape,
     score: scoreShape(shape, normPts, features),
   }));
 }
 
-function buildDebug(features: ReturnType<typeof featureSet>) {
+function buildDebug(features: Features) {
   return {
-    winding: features.winding,
+    winding: features.rawWinding / (Math.PI * 2),
     corners: features.corners,
     reversals: features.reversals,
     closure: features.closure,
@@ -430,26 +516,69 @@ function buildDebug(features: ReturnType<typeof featureSet>) {
     horizontalRatio: features.horizontalRatio,
     verticalRatio: features.verticalRatio,
     lineStraightness: features.straightness,
+    radiusConsistency: features.radiusConsistency,
+    hAlign: features.hAlign,
+    vAlign: features.vAlign,
   };
+}
+
+// Ferramenta de diagnóstico: imprime features e a decomposição de cada score.
+// Desenhe a forma que falha e leia os números no console.
+export function debugTrace(trail: TrailPoint[]) {
+  const normPts = normalizeInput(trail);
+  if (!normPts) {
+    console.log("[debugTrace] normPts = null (poucos pontos?)");
+    return;
+  }
+  const f = featureSet(normPts);
+
+  console.log("[debugTrace] FEATURES:");
+  console.table({
+    reversals: f.reversals,
+    corners: f.corners,
+    rawWinding: (f.rawWinding / Math.PI).toFixed(2) + "π",
+    closure: f.closure.toFixed(3),
+    straightness: f.straightness.toFixed(3),
+    horizontalRatio: f.horizontalRatio.toFixed(3),
+    verticalRatio: f.verticalRatio.toFixed(3),
+    radiusConsistency: f.radiusConsistency.toFixed(3),
+    hAlign: f.hAlign.toFixed(3),
+    vAlign: f.vAlign.toFixed(3),
+  });
+
+  const shapes: SpellShape[] = ["circle", "zigzag", "triangle", "horizontal", "vertical"];
+  console.log("[debugTrace] SCORES (template / evidence / min):");
+  console.table(
+    shapes.map((shape) => {
+      const template = dollarBest(normPts, NORMALIZED_TEMPLATES[shape], MATCH_POLICY[shape]);
+      const evidence = shapeEvidence(shape, f);
+      return {
+        shape,
+        template: template.toFixed(3),
+        evidence: evidence.toFixed(3),
+        final: Math.min(template, evidence).toFixed(3),
+      };
+    })
+  );
 }
 
 export function recognizeGesture(trail: TrailPoint[]): RecognitionResult {
   const normPts = normalizeInput(trail);
-  const features = normPts
+  const features: Features = normPts
     ? featureSet(normPts)
     : {
         pathLength: 0,
         pathLengthScore: 0,
         closure: 1,
-        winding: 0,
+        rawWinding: 0,
         reversals: 0,
         corners: 0,
         straightness: 0,
         horizontalRatio: 0.5,
         verticalRatio: 0.5,
-        downness: 0,
-        dx: 0,
-        dy: 0,
+        radiusConsistency: 0,
+        hAlign: 0,
+        vAlign: 0,
       };
 
   const scores = normPts ? scoreAllShapes(trail) : [];
