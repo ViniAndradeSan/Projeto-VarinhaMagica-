@@ -19,9 +19,7 @@ import {
 } from "@/features/wand";
 
 export default function HomeScreen() {
-  // [M04] useWindowDimensions: reativo a rotação de tela.
-  // Dimensions.get("window") é estático — não atualiza ao girar o celular.
-  // useWindowDimensions re-renderiza automaticamente quando as dimensões mudam.
+
   const { width: SCREEN_W, height: SCREEN_H } = useWindowDimensions();
   const { state, onTouchStart, onTouchMove, onTouchEnd } = useWand();
   const { top } = useSafeAreaInsets();
@@ -63,11 +61,6 @@ export default function HomeScreen() {
     ? `Confiança: ${Math.round(state.lastConfidence * 100)}%`
     : "";
 
-  // [M01] expo-status-bar: o estilo muda com base na fase do app.
-  // casting → light (fundo escuro com efeito brilhante)
-  // error   → light (fundo vermelho escuro)
-  // drawing → light (fundo escuro enquanto desenha)
-  // idle    → auto  (segue o tema do sistema)
   const statusBarStyle =
     isCasting || isError || isDrawing ? "light" : "auto";
 
